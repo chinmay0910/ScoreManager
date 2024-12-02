@@ -2,19 +2,20 @@ const express = require('express');
 const router = express.Router();
 const User = require('../models/User');
 const ScoreUpdate = require('../models/ScoreUpdate');
+const fetchuser = require('../middleware/fetchuser');
 
 // Endpoint to save/update a user's score along with the reason
-router.post('/api/score', async (req, res) => {
-    const { email, score, reason } = req.body;
+router.post('/api/score', fetchuser, async (req, res) => {
+    const { score, reason } = req.body;
 
     // Validate the request data
-    if (!email || score === undefined || !reason) {
-        return res.status(400).json({ message: 'Email, score, and reason are required' });
+    if ( score === undefined || score < 0 || !reason) {
+        return res.status(400).json({ message: 'score, and reason are required and should not be negative' });
     }
 
     try {
         // Find the user by email
-        const user = await User.findOne({ email });
+        const user = await User.findById(req.userId);
 
         if (!user) {
             return res.status(404).json({ message: 'User not found' });
@@ -42,13 +43,18 @@ router.post('/api/score', async (req, res) => {
     }
 });
 
-// Endpoint to get a user's total score by email
-router.get('/api/score/:email', async (req, res) => {
-    const { email } = req.params;
+// Endpoint to get a user's total score using JWT token
+router.get('/api/score', fetchuser, async (req, res) => {
+    // Decode the token to get the userId
+    const userId = req.userId;
+
+    if (!userId) {
+        return res.status(403).json({ message: 'Invalid or expired token' });
+    }
 
     try {
-        // Find the user by email
-        const user = await User.findOne({ email });
+        // Find the user by userId
+        const user = await User.findById(userId);
 
         if (!user) {
             return res.status(404).json({ message: 'User not found' });
