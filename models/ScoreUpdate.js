@@ -6,6 +6,11 @@ const ScoreUpdateSchema = new mongoose.Schema({
     ref: 'User', // Reference to the User schema
     required: true,
   },
+  challengeId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Challenge', // Reference to the Challenge schema
+    required: true,
+  },
   score: {
     type: Number,
     required: true,

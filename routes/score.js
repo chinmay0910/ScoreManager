@@ -3,40 +3,60 @@ const router = express.Router();
 const User = require('../models/User');
 const ScoreUpdate = require('../models/ScoreUpdate');
 const fetchuser = require('../middleware/fetchuser');
+const Challenge = require('../models/Challenge');
 
-// Endpoint to save/update a user's score along with the reason
+// Endpoint to save/update a user's score based on a challenge
 router.post('/api/score', fetchuser, async (req, res) => {
-    const { score, reason } = req.body;
+    const { challengeId } = req.body;
 
-    // Validate the request data
-    if ( score === undefined || score < 0 || !reason) {
-        return res.status(400).json({ message: 'score, and reason are required and should not be negative' });
+    if (!challengeId) {
+        return res.status(400).json({ message: 'ChallengeId is required' });
     }
 
     try {
-        // Find the user by email
-        const user = await User.findById(req.userId);
+        // Find the challenge by ID
+        const challenge = await Challenge.findById(challengeId);
+        if (!challenge) {
+            return res.status(404).json({ message: 'Challenge not found' });
+        }
 
+        // Find the user by userId (from the token)
+        const user = await User.findById(req.userId);
         if (!user) {
             return res.status(404).json({ message: 'User not found' });
         }
-        
-        // Save the score update to the ScoreUpdate collection
+
+        // Check if the user has already submitted for this challenge
+        const existingScoreUpdate = await ScoreUpdate.findOne({
+            userId: user._id,
+            challengeId: challenge._id,
+        });
+
+        if (existingScoreUpdate) {
+            return res.status(400).json({
+                message: 'You have already submitted for this challenge',
+            });
+        }
+
+        // Create a new score update record
         const scoreUpdate = new ScoreUpdate({
             userId: user._id,
-            score,
-            reason,
+            challengeId: challenge._id,
+            score: challenge.score, // Automatically assign score from Challenge schema
+            reason: challenge.title, // Use challenge title as reason
         });
 
         // Update the user's total score
-        user.totalScore += score;
+        user.totalScore += challenge.score;
         await user.save();
 
         // Save the score update
         await scoreUpdate.save();
 
-        return res.json({ message: 'Score updated successfully', highScore: user.totalScore });
-
+        return res.status(201).json({
+            message: 'Score updated successfully',
+            highScore: user.totalScore,
+        });
     } catch (error) {
         console.error('Error updating score:', error);
         return res.status(500).json({ message: 'Server error' });
@@ -68,15 +88,15 @@ router.get('/api/score', fetchuser, async (req, res) => {
     }
 });
 
-// Endpoint to get all score updates for a specific user by userId
+// Fetch all score updates for a specific user by userId
 router.get('/api/score/updates/:userId', async (req, res) => {
     const { userId } = req.params;
 
     try {
-        // Fetch all score updates for the given userId
         const scoreUpdates = await ScoreUpdate.find({ userId })
-            .populate('userId', 'email') // Populate email from the User collection
-            .sort({ dateUpdated: -1 }); // Sort by dateUpdated in descending order
+            .populate('userId', 'email') // Populate user email
+            .populate('challengeId', 'title') // Populate challenge title
+            .sort({ dateUpdated: -1 }); // Sort by dateUpdated descending
 
         if (scoreUpdates.length === 0) {
             return res.status(404).json({ message: 'No score updates found for this user' });
@@ -88,5 +108,6 @@ router.get('/api/score/updates/:userId', async (req, res) => {
         res.status(500).json({ message: 'Server error' });
     }
 });
+
 
 module.exports = router;

@@ -4,6 +4,7 @@ const connectToMongo = require('./db');
 const cors = require('cors');
 const jwt = require('jsonwebtoken');
 const scoreRoutes = require('./routes/score'); // Import score routes
+const challengeROutes = require('./routes/Challenge'); // Import score routes
 const User = require('./models/User');
 
 const app = express();
@@ -18,27 +19,33 @@ app.use(bodyParser.json());
 
 // Connect to MongoDB
 connectToMongo();
+require('dotenv').config(); // Load environment variables
 
 app.post('/api/user', async (req, res) => {
-    // console.log('Received POST request at /api/user');
-    const { email } = req.body;
+    const { email, passpin } = req.body;
 
     // Validate the request data
-    if ( !email ) {
-        return res.status(400).json({ message: 'email is required' });
+    if (!email || !passpin) {
+        return res.status(400).json({ message: 'Email and passpin are required' });
     }
 
     try {
+        // Verify the passpin
+        const validPasspin = process.env.PASSPIN; // Load passpin from environment variable
+        if (passpin !== validPasspin) {
+            return res.status(403).json({ message: 'Invalid passpin' });
+        }
+
         // Check if the email already exists
         const existingUser = await User.findOne({ email });
         if (existingUser) {
             return res.status(400).json({ message: 'Email is already taken' });
         }
-        
+
         // Create a new user
         const newUser = new User({
             email,
-            totalScore: 0, // Default score can be set to 0
+            totalScore: 0, // Default score set to 0
         });
 
         // Save the user to the database
@@ -57,6 +64,7 @@ app.post('/api/user', async (req, res) => {
         res.status(500).json({ message: 'Server error' });
     }
 });
+
 
 app.post('/login', async (req, res) => {
     const { email } = req.body;
@@ -86,6 +94,7 @@ app.post('/login', async (req, res) => {
 
 // Use score routes
 app.use(scoreRoutes);
+app.use(challengeROutes);
 
 // Start the server
 app.listen(port, '0.0.0.0', () => {
