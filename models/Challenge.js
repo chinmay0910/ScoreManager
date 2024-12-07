@@ -7,10 +7,19 @@ const ChallengeSchema = new mongoose.Schema({
         unique: true, // Each challenge must have a unique title
         trim: true,
     },
+    name: {
+        type: String,
+        required: true, // A readable name for the challenge
+        trim: true,
+    },
     score: {
         type: Number,
         required: true,
         min: 0, // Ensure score is not negative
+    },
+    isVisible: {
+        type: Boolean,
+        default: true, // Visibility of the challenge
     },
     createdAt: {
         type: Date,

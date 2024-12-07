@@ -5,6 +5,7 @@ const cors = require('cors');
 const jwt = require('jsonwebtoken');
 const scoreRoutes = require('./routes/score'); // Import score routes
 const challengeROutes = require('./routes/Challenge'); // Import score routes
+const challengeIPRoutes = require('./routes/ChallengeIpRoute'); // Import score routes
 const User = require('./models/User');
 
 const app = express();
@@ -66,7 +67,7 @@ app.post('/api/user', async (req, res) => {
 });
 
 
-app.post('/login', async (req, res) => {
+app.post('/api/login', async (req, res) => {
     const { email } = req.body;
     console.log("login by "+email);
     
@@ -95,6 +96,7 @@ app.post('/login', async (req, res) => {
 // Use score routes
 app.use(scoreRoutes);
 app.use(challengeROutes);
+app.use(challengeIPRoutes);
 
 // Start the server
 app.listen(port, '0.0.0.0', () => {

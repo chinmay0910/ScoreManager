@@ -5,11 +5,11 @@ const correctPasspin = process.env.PASSPIN; // Replace with your actual passpin
 
 // POST /api/challenges - Add a new challenge
 router.post('/api/challenges', async (req, res) => {
-    const { title, score, passpin } = req.body;
-
+    const { title, name, isVisible, score, passpin } = req.body;
+    
     // Validate the input
-    if (!title || score == null || !passpin) {
-        return res.status(400).json({ message: 'Title, score, and passpin are required' });
+    if (!title || !name || score == null || !passpin) {
+        return res.status(400).json({ message: 'Title, name, isVisible, score, and passpin are required' });
     }
 
     if (score < 0) {
@@ -32,6 +32,8 @@ router.post('/api/challenges', async (req, res) => {
         const newChallenge = new Challenge({
             title,
             score,
+            name, 
+            isVisible,
         });
 
         await newChallenge.save();
