@@ -64,7 +64,7 @@ router.post('/api/score', fetchuser, async (req, res) => {
 });
 
 // Endpoint to get a user's total score using JWT token
-router.get('/api/score', fetchuser, async (req, res) => {
+/* router.get('/api/score', fetchuser, async (req, res) => {
     // Decode the token to get the userId
     const userId = req.userId;
 
@@ -107,7 +107,33 @@ router.get('/api/score/updates/:userId', async (req, res) => {
         console.error('Error fetching score updates:', error);
         res.status(500).json({ message: 'Server error' });
     }
-});
+});*/
 
+router.get('/api/score/solvedChallenges', fetchuser, async (req, res) => {
+    const userId = req.userId;
+
+    if (!userId) {
+        return res.status(403).json({ message: 'Invalid or expired token' });
+    }
+
+    try {
+        // Find all score updates for the user and populate the challenge titles
+        const scoreUpdates = await ScoreUpdate.find({ userId })
+            .populate('challengeId', 'title') // Populate challenge title
+            .select('challengeId'); // Only get the challengeId field populated with title
+
+        if (scoreUpdates.length === 0) {
+            return res.status(404).json({ message: 'No solved challenges found for this user' });
+        }
+
+        // Map over the score updates to extract challenge titles
+        const solvedChallenges = scoreUpdates.map(update => update.challengeId.title).join("\n");
+
+        res.json({ solvedChallenges });
+    } catch (error) {
+        console.error('Error fetching solved challenges:', error);
+        res.status(500).json({ message: 'Server error' });
+    }
+});
 
 module.exports = router;
